@@ -1,0 +1,183 @@
+---
+title: "Segunda sesión práctica: Muestreo aleatorio simple"
+output:
+  html_document:
+    df_print: paged
+---
+
+<div align="right">**Elaborado por Chiara Zamora** </div>
+<div align="right">PCPOCZAM@upc.edu.pe </div>
+<a id='home'></a>
+
+Veremos:
+
+**Muestreo aleatorio**
+
+1. [Limpieza y preprocesamiento](### **1. Limpieza y preprocesamiento**)
+
+2. [Estadística descriptiva de la población](### **2. Estadística descriptiva de la población**)
+
+3. [Muestreo aleatorio](### **3. Muestreo aleatorio**)
+
+4. [Estadística descriptiva de la muestra](### **4. Estadística descriptiva de la muestras**)
+
+---
+
+### **1. Limpieza y preprocesamiento**
+
+* Importación de datos
+
+```{r}
+data("iris")
+```
+
+```{r}
+dim(iris)
+```
+
+```{r}
+library(Hmisc)
+
+describe(iris)
+```
+
+---
+
+### **2. Estadística descriptiva de la población**
+
+```{r}
+attach(iris) #Fijamos una data
+#detach(ejecucion) #- Dejar de fijar la data
+```
+
+* Media
+```{r}
+a = mean(Sepal.Length)
+```
+
+* Mediana
+```{r}
+b = median(Sepal.Length)
+```
+
+* Moda 
+```{r}
+#install.packages("modeest")
+library(modeest)
+c = mfv(Sepal.Length)
+```
+
+```{r}
+#Crear un vector de resultados
+
+resultados = c(a,b,c)
+
+resultados
+```
+
+```{r}
+#Llamar resultados según ubicación
+
+resultados[3]
+
+describe(Sepal.Length)
+```
+
+```{r}
+library(dplyr)
+
+#Hallar la media por cada categoría de la variable Species
+
+#Filtrar la data por cada categoría (No recomendable)
+
+Setosa = iris %>% filter (Species=="setosa")
+versicolor = iris %>% filter (Species=="versicolor")
+virginica = iris %>% filter (Species=="virginica")
+
+mean(iris$Sepal.Length)
+mean(iris$Sepal.Length)
+mean(iris$Sepal.Length)
+```
+
+
+```{r}
+#Utilizando group_by
+
+tabla1 = iris %>% group_by(Species)%>% summarise(Media = mean(Sepal.Length), 
+                                                 Mediana = median(Sepal.Length))
+
+tabla1
+```
+
+* Cuartiles y percentiles
+```{r}
+quantile(iris$Petal.Length, probs=c(0.25,0.5,0.75))
+```
+
+```{r}
+quantile(iris$Petal.Length, probs=c(0.35))
+```
+
+* Desviación estándar
+```{r}
+sd(iris$Petal.Length, na.rm = TRUE)
+```
+
+* Varianza
+```{r}
+var(iris$Petal.Length, na.rm = TRUE)
+```
+
+* Coeficiente de variación
+```{r}
+#Coeficiente de variación
+
+cv = sd(iris$Petal.Length)/mean(iris$Petal.Length)
+
+cv
+```
+
+---
+
+### **3. Muestreo aleatorio simple**
+
+* Problema: 
+
+Debe extraerse una muestra de 10 casos de la población en la base de datos incorporada **iris**.
+
+```{r}
+##Modo clásico
+
+dim(iris) #Dimensión de la data
+nrow(iris) #Número de filas
+```
+
+* Solución:
+
+```{r}
+n = 10 #especificar el número de casos a ser extraídos
+```
+
+```{r}
+#selección de los números de fila de los casos a ser extraídos
+set.seed(123) #especificar semilla: el punto de partida usado para generar una secuencia de números aleatorios
+muestra = sample(1:nrow(iris), size = n, replace = FALSE) #sin reemplazo
+
+muestra
+```
+
+```{r}
+#extracción de casos seleccionados
+
+muestra.iris = iris[muestra,]
+
+muestra.iris
+```
+
+```{r}
+##OPCIONAL: Modo dplyr
+
+muestra.iris.v2 = iris%>%sample_n(size=n, replace=F)
+```
+
+¿Qué margen de error resulta de la selección de una muestra aleatoria de 10 casos al 95% de confianza?

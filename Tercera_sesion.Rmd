@@ -1,0 +1,333 @@
+---
+title: "Tercera sesión práctica: Muestreo aleatorio"
+output:
+  html_document:
+    df_print: paged
+---
+
+<div align="right">**Elaborado por Chiara Zamora** </div>
+<div align="right">PCPOCZAM@upc.edu.pe </div>
+<a id='home'></a>
+
+Veremos:
+
+**Muestreo probabilístico/ aleatorio**
+
+1. [Importación y exploración de datos](### **1. Importación y exploración de datos**)
+
+2. [Muestreo aleatorio simple](### **2. Muestreo aleatorio simple**)
+
+3. [Muestreo aleatorio sistemático](### **3. Muestreo aleatorio sistemático**)
+
+4. [Muestreo aleatorio estratificado](### **4. Muestreo aleatorio estratificado*)
+
+5. [Muestreo por conglomerados](### **5. Muestreo por conglomerados**)
+
+---
+
+### **1. Importación y exploración de datos**
+
+Recuperado de: https://www.datosabiertos.gob.pe/dataset/fallecidos-hospitalizados-y-vacunados-por-covid-19
+
+* Importación desde la web
+```{r}
+library(rio)
+
+covid = import("https://cloud.minsa.gob.pe/s/8EsmTzyiqmaySxk/download")
+```
+
+```{r}
+dim(covid)
+```
+
+```{r}
+names(covid)
+```
+
+```{r}
+str(covid)
+```
+
+```{r}
+library(tidyverse)
+#nombre de la base %>%
+# select_if(is.numeric)
+
+covid %>%
+  select_if(is.numeric)%>%
+  summary
+```
+
+* Filtrar la base
+```{r}
+alta = subset(covid, evolucion_hosp_ultimo == "alta") 
+```
+
+---
+
+### **2. Muestreo aleatorio simple**
+
+* Con reemplazo
+
+```{r}
+#N --> población
+#n --> muestra
+set.seed(123)
+muestra_simple = alta %>% sample_n(size = 1513, replace = T) #un elemento puede ser seleccionado más de una vez, porque tras ser tomado es llevado de vuelta a la población
+```
+
+```{r}
+summary(muestra_simple$edad)
+```
+```{r}
+#media 1 (sin la semilla) --> 47.19 
+#media 2 (sin la semilla) --> 45.78 
+#media 3 (sin la semilla) --> 45.86
+#media 4 (con la semilla) --> 47.8
+#media 5 (con la semilla) --> 47.8
+#media 6 (sin la semilla) --> 47.09
+```
+
+* Sin reemplazo
+
+```{r}
+set.seed(123)
+muestra_simple_sin_reemplazo = alta %>% sample_n( size = 1513, replace = F)
+```
+
+```{r}
+summary(alta$edad)
+summary(muestra_simple$edad)
+summary(muestra_simple_sin_reemplazo$edad)
+```
+
+---
+
+### **3. Muestreo aleatorio sistemático**
+
+* Creación de la función
+
+```{r}
+# tamaño de la población --> N (95863)
+# tamaño de la muestra --> n (1513)
+
+obtain_sys = function(N,n){
+  k = ceiling(N/n) #63
+  r = sample(1:k, 1) #1:63,1
+  seq(r,r+k*(n-1),k) 
+}
+
+#ej. 2 (r: punto de inicio aleatorio), 2+63, 2+63+63, 2+63+63+63
+# seq(start, stop, by = distance)
+```
+
+```{r}
+sistematico <- alta[obtain_sys(95863, 383),]
+
+#data[filas,]
+
+#sistematico <- alta[obtain_sys(nrow(alta), 1513),]
+```
+
+---
+
+### **4. Muestreo aleatorio estratificado*
+
+```{r}
+table(alta$fabricante_dosis1)
+```
+
+```{r}
+alta_limpia = alta %>%
+  subset(fabricante_dosis1 == "ASTRAZENECA" |
+           fabricante_dosis1 == "PFIZER" |
+           fabricante_dosis1 == "SINOPHARM")
+```
+
+* Calculamos una nueva muestra
+
+```{r}
+table(alta_limpia$fabricante_dosis1)
+```
+
+```{r}
+prop.table(table(alta_limpia$fabricante_dosis1))*100
+```
+
+```{r}
+0.0708*1508
+0.5507*1508
+0.3784*1508
+```
+
+* Afijación simple: todos los estratos son iguales
+
+Astrazeneca: 1204
+Pfizer: 1484
+Sinopharm: 1461
+
+```{r}
+1508/3
+```
+
+```{r}
+#tamaño muestral 
+
+estratificado <- alta_limpia %>% 
+  group_by(fabricante_dosis1) %>% 
+  sample_n(size = 503, replace = F) #especifica el tamaño de la muestra que extraerá por grupo (en el ejemplo es aproximadamente 503 casos por grupo)
+```
+
+```{r}
+prop.table(table(estratificado$fabricante_dosis1))*100
+```
+
+```{r}
+prop.table(table(alta_limpia$fabricante_dosis1))*100
+```
+
+* Afijación proporcional
+
+```{r}
+1508/78375
+```
+
+```{r}
+#n porcentual
+muestra_estrat_2 <- alta_limpia %>% 
+  group_by(fabricante_dosis1) %>% 
+  sample_frac(size = 0.01924083, replace = F) #especifica la proporción de casos que debe extraer de cada grupo
+```
+
+```{r}
+prop.table(table(muestra_estrat_2$fabricante_dosis1))*100
+```
+
+**Hasta aquí PC 1**
+
+* Ruta alternativa 
+
+```{r}
+library(survey)
+library(sampling)
+```
+
+```{r}
+s = strata(alta_limpia, c("fabricante_dosis1"), size=c(10, 20, 30), method="srswor")
+```
+
+```{r}
+DatosMuestra = getdata(alta_limpia, s)
+```
+
+```{r}
+DatosMuestra$Pesos = 1/DatosMuestra$Prob
+```
+
+```{r}
+mydesign1<- svydesign(id = ~1,
+                      strata = ~fabricante_dosis1,
+                      data = DatosMuestra,
+                      weight = ~Pesos)
+```
+
+```{r}
+mean(DatosMuestra$edad)
+```
+
+```{r}
+svymean(~edad, mydesign1) #Media
+```
+
+```{r}
+svytotal(~edad, mydesign1) #Total
+```
+
+```{r}
+svyby(~edad, ~fabricante_dosis1, mydesign1, svymean)
+```
+
+```{r}
+library("xlsx")
+
+write.xlsx(DatosMuestra, file = "data_1_des.xlsx", append = FALSE)
+```
+
+---
+
+### **5. Muestreo por conglomerados**
+
+#### **Una etapa**
+
+```{r}
+
+#table(peru$pobreza)
+
+#PRIMERA ETAPA
+
+cluster1<- sample(unique(alta_limpia$fabricante_dosis1), size=2, replace=F)
+
+cluster_sample<-alta_limpia[alta_limpia$fabricante_dosis1 %in% cluster1, ]
+
+table(cluster_sample$fabricante_dosis1)
+```
+
+#### **Doble etapa**
+
+* Preparación de data
+
+```{r}
+#install.packages("survey")
+library(survey)
+library(sampling)
+library(tidyverse)
+
+data(swissmunicipalities)
+data<-swissmunicipalities
+```
+
+```{r}
+#save(suiza, file = "suiza.RData") #guardar un archivo en formato R
+```
+
+```{r}
+# Trabajaremos con las regiones y los catones
+names(data)
+
+table(data$CT,data$REG) #tabla cruzada
+
+```
+
+* Selección de la muestra
+
+```{r}
+data(swissmunicipalities)
+data<-swissmunicipalities
+data<-data[order(data$REG,data$CT),]
+attach(data)
+
+set.seed(123)#fijen una semilla
+
+#Seleccionando 4 regiones (1era etapa) y 1 canton por cada región seleccionada (2da etapa)
+
+muestra_2<-mstage(data,stage=list("cluster","cluster"), varnames=list("REG","CT"),
+         size=list(4,c(1,1,1,1)), method=list("srswor","srswor")) #sin reemplazo
+
+#Obteniendo los casos selecciones muestra_2 en Regiones
+
+unique(muestra_2[[1]]$REG)
+
+#Obteniendo los casos selecciones muestra_2 en Cantones
+
+unique(muestra_2[[2]]$CT)
+
+#Match entre la data y el muestreo
+
+x=getdata(data,muestra_2)[[2]]
+
+#Observando la cantidad de casos seleccionados
+
+table(x$REG,x$CT)
+
+```
+
