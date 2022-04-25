@@ -69,10 +69,11 @@ alta = subset(covid, evolucion_hosp_ultimo == "alta")
 
 * Con reemplazo
 
+** Sobre la función set. seed**: Establece el número inicial utilizado para generar una secuencia de números aleatorios; garantiza que obtenga el mismo resultado si comienza con la misma semilla cada vez que ejecuta el mismo proceso.
 ```{r}
 #N --> población
 #n --> muestra
-set.seed(123)
+set.seed(123) 
 muestra_simple = alta %>% sample_n(size = 1513, replace = T) #un elemento puede ser seleccionado más de una vez, porque tras ser tomado es llevado de vuelta a la población
 ```
 
