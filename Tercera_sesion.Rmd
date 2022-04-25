@@ -162,12 +162,8 @@ prop.table(table(alta_limpia$fabricante_dosis1))*100
 
 * Afijación simple: todos los estratos son iguales
 
-Astrazeneca: 1204
-Pfizer: 1484
-Sinopharm: 1461
-
 ```{r}
-1508/3
+1508/3 #tamaño de la muestra/número de categorías o grupos
 ```
 
 ```{r}
@@ -189,7 +185,7 @@ prop.table(table(alta_limpia$fabricante_dosis1))*100
 * Afijación proporcional
 
 ```{r}
-1508/78375
+1508/78375 #tamaño de la muestra/ tamaño de la población
 ```
 
 ```{r}
